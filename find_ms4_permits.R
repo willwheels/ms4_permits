@@ -13,6 +13,14 @@ if(!file.exists(here::here("data", "npdes_downloads.zip"))) {
         exdir = here::here("data"))
 }
 
+if(!file.exists(here::here("data", "ICIS_FACILITIES.csv"))) {
+  
+  unzip(here::here("data", "npdes_downloads.zip"),
+        files = c("ICIS_FACILITIES.csv"),
+        exdir = here::here("data"))
+  
+}
+
 npdes_perm_components <- fread(here::here("data", "NPDES_PERM_COMPONENTS.csv"))
 
 npdes_perm_components |>
@@ -49,4 +57,32 @@ icis_permits_small <- icis_permits |>
   mutate(original_date = lubridate::mdy(ORIGINAL_ISSUE_DATE)) |>
   arrange(original_date)
 
+icis_facilities <- fread(here::here("data", "ICIS_FACILITIES.csv"))
 
+icis_facilities <- icis_facilities |>
+  left_join(npdes_perm_components, by = c("NPDES_ID" = "EXTERNAL_PERMIT_NMBR")) |>
+  filter(!is.na(COMPONENT_TYPE_CODE))
+
+sum(is.na(icis_facilities$GEOCODE_LATITUDE))
+sum(is.na(icis_facilities$GEOCODE_LONGITUDE))
+
+
+## now get discharge point data
+
+if(!file.exists(here::here("data", "npdes_outfalls_layer.zip"))) {
+  
+  download.file("https://echo.epa.gov/files/echodownloads/npdes_outfalls_layer.zip",
+                destfile = here::here("data", "npdes_outfalls_layer.zip"))
+  
+}
+
+npdes_outfalls <- fread(here::here("data", "npdes_outfalls_layer.zip"))
+
+npdes_outfalls <- npdes_outfalls |>
+  left_join(npdes_perm_components) |>
+  filter(!is.na(COMPONENT_TYPE_CODE))
+
+
+sum(is.na(npdes_outfalls$GEOCODE_LATITUDE))
+sum(is.na(npdes_outfalls$GEOCODE_LONGITUDE))
+length(unique(npdes_outfalls$EXTERNAL_PERMIT_NMBR))
